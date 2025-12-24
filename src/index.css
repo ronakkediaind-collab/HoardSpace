@@ -1,0 +1,180 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+@import "tailwindcss";
+
+/* Define all CSS variables for light and dark mode */
+@layer base {
+  :root {
+    --background: 270 20% 98%;
+    --foreground: 270 50% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 270 50% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 270 50% 10%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 270 30% 94%;
+    --secondary-foreground: 270 50% 20%;
+
+    --muted: 270 20% 94%;
+    --muted-foreground: 270 15% 45%;
+
+    --accent: 280 85% 65%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 270 20% 88%;
+    --input: 270 20% 88%;
+    --ring: 262 83% 58%;
+
+    --radius: 0.75rem;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(262 83% 58%) 0%,
+      hsl(280 85% 65%) 100%
+    );
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(262 83% 58% / 0.1) 0%,
+      hsl(280 85% 65% / 0.1) 100%
+    );
+  }
+
+  .dark {
+    --background: 270 30% 8%;
+    --foreground: 270 10% 95%;
+
+    --card: 270 30% 12%;
+    --card-foreground: 270 10% 95%;
+
+    --popover: 270 30% 12%;
+    --popover-foreground: 270 10% 95%;
+
+    --primary: 262 83% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 270 30% 18%;
+    --secondary-foreground: 270 10% 90%;
+
+    --muted: 270 25% 18%;
+    --muted-foreground: 270 15% 60%;
+
+    --accent: 280 85% 70%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 270 25% 20%;
+    --input: 270 25% 20%;
+    --ring: 262 83% 65%;
+
+    --success: 142 76% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(262 83% 65%) 0%,
+      hsl(280 85% 70%) 100%
+    );
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(262 83% 65% / 0.15) 0%,
+      hsl(280 85% 70% / 0.15) 100%
+    );
+  }
+
+  /* Apply variables using arbitrary values (this avoids the unknown class error) */
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: "Outfit", sans-serif;
+    font-feature-settings: "liga" 1, "calt" 1;
+    @apply antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Space Grotesk", sans-serif;
+    @apply font-bold tracking-tight;
+  }
+}
+
+/* Custom utility classes for gradients and text gradients */
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Optional: easy access to your semantic colors in HTML */
+  .bg-background {
+    @apply bg-[hsl(var(--background))];
+  }
+  .bg-foreground {
+    @apply bg-[hsl(var(--foreground))];
+  }
+  .bg-card {
+    @apply bg-[hsl(var(--card))];
+  }
+  .bg-primary {
+    @apply bg-[hsl(var(--primary))];
+  }
+  .bg-secondary {
+    @apply bg-[hsl(var(--secondary))];
+  }
+  .bg-muted {
+    @apply bg-[hsl(var(--muted))];
+  }
+  .bg-accent {
+    @apply bg-[hsl(var(--accent))];
+  }
+
+  .text-primary {
+    @apply text-[hsl(var(--primary))];
+  }
+  .text-secondary {
+    @apply text-[hsl(var(--secondary))];
+  }
+
+  .border-border {
+    @apply border-[hsl(var(--border))];
+  }
+  .ring-ring {
+    @apply ring-[hsl(var(--ring))];
+  }
+}
