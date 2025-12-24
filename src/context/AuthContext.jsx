@@ -1,60 +1,126 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 const AuthContext = createContext(undefined);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("hoardspace-user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    checkUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        fetchProfile(session.user.id);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = (email, password, role) => {
-    // Mock authentication - in real app, this would call an API
-    const mockUser = {
-      id: Date.now(),
-      email,
-      name: email.split("@")[0],
-      role, // 'vendor' or 'agency'
-      createdAt: new Date().toISOString(),
-    };
-
-    setUser(mockUser);
-    localStorage.setItem("hoardspace-user", JSON.stringify(mockUser));
-    return mockUser;
+  const checkUser = async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
+      }
+    } catch (error) {
+      console.error("Error checking user:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const signup = (userData) => {
-    // Mock signup
-    const newUser = {
-      id: Date.now(),
-      ...userData,
-      createdAt: new Date().toISOString(),
-    };
+  const fetchProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    setUser(newUser);
-    localStorage.setItem("hoardspace-user", JSON.stringify(newUser));
-    return newUser;
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("hoardspace-user");
+  const login = async (email, password) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      setUser(data.user);
+      await fetchProfile(data.user.id);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signup = async (userData) => {
+    try {
+      const { data: authData, error: authError } =
+        await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+        });
+
+      if (authError) throw authError;
+
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: authData.user.id,
+        role: userData.role,
+        full_name: userData.name,
+        company_name: userData.companyName,
+        phone: userData.phone,
+      });
+
+      if (profileError) throw profileError;
+
+      setUser(authData.user);
+      await fetchProfile(authData.user.id);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   const isAuthenticated = !!user;
-  const isVendor = user?.role === "vendor";
-  const isAgency = user?.role === "agency";
+  const isVendor = profile?.role === "vendor";
+  const isAgency = profile?.role === "agency";
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        profile,
         isLoading,
         isAuthenticated,
         isVendor,

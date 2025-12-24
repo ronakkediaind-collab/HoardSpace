@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import HoardingCard from "../components/hoarding/HoardingCard";
 import HoardingFilters from "../components/hoarding/HoardingFilters";
-import { hoardings } from "../data/dummyData";
+import { useHoardings } from "../hooks/useHoardings";
 
 export default function SearchResults() {
   const [searchParams] = useSearchParams();
@@ -15,29 +16,35 @@ export default function SearchResults() {
     priceRange: "",
   });
 
-  const filtered = useMemo(() => {
-    return hoardings.filter((h) => {
-      if (filters.city && h.city.toLowerCase() !== filters.city) return false;
-      if (filters.type && h.type !== filters.type) return false;
-      if (filters.priceRange) {
-        const [min, max] = filters.priceRange
-          .split("-")
-          .map((v) => (v === "30000+" ? Infinity : Number(v)));
-        if (h.dailyRate < (min || 0) || (max !== Infinity && h.dailyRate > max))
-          return false;
-      }
-      return true;
-    });
-  }, [filters]);
+  const filterParams = {
+    city: filters.city,
+    type: filters.type,
+    ...(filters.priceRange && (() => {
+      const [min, max] = filters.priceRange.split("-");
+      return {
+        minPrice: min === "30000+" ? 30000 : Number(min) || 0,
+        maxPrice: max ? (max === "+" ? 999999 : Number(max)) : undefined,
+      };
+    })()),
+  };
+
+  const { hoardings, isLoading } = useHoardings(filterParams);
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl font-display font-bold mb-6">
-            Explore Hoardings
-          </h1>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-display font-bold">
+                Explore Hoardings
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                {isLoading ? "Loading..." : `${hoardings.length} hoardings found`}
+              </p>
+            </div>
+          </div>
           <div className="flex gap-6">
             <HoardingFilters
               filters={filters}
@@ -45,15 +52,24 @@ export default function SearchResults() {
               onClear={() => setFilters({ city: "", type: "", priceRange: "" })}
             />
             <div className="flex-1">
-              {filtered.length ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filtered.map((h) => (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : hoardings.length ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-fade-in">
+                  {hoardings.map((h) => (
                     <HoardingCard key={h.id} hoarding={h} />
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-16 text-muted-foreground">
-                  No hoardings found. Try adjusting filters.
+                <div className="text-center py-20 bg-secondary/30 rounded-2xl">
+                  <p className="text-xl font-medium text-muted-foreground mb-2">
+                    No hoardings found
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Try adjusting your filters or search in a different city
+                  </p>
                 </div>
               )}
             </div>

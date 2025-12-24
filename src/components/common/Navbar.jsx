@@ -6,7 +6,7 @@ import { Sun, Moon, Menu, X, MapPin, User, LogOut } from "lucide-react";
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, profile, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -18,10 +18,12 @@ export default function Navbar() {
   };
 
   const getDashboardLink = () => {
-    if (user?.role === "vendor") return "/dashboard/vendor";
-    if (user?.role === "agency") return "/dashboard/agency";
+    if (profile?.role === "vendor") return "/dashboard/vendor";
+    if (profile?.role === "agency") return "/dashboard/agency";
     return "/";
   };
+
+  const displayName = profile?.full_name || profile?.company_name || user?.email?.split("@")[0] || "User";
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -69,7 +71,7 @@ export default function Navbar() {
                   <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
                     <User className="w-4 h-4 text-primary-foreground" />
                   </div>
-                  <span className="font-medium">{user?.name}</span>
+                  <span className="font-medium">{displayName}</span>
                 </button>
 
                 {userMenuOpen && (

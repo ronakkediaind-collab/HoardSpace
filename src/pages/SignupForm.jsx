@@ -19,27 +19,37 @@ export default function SignupForm() {
     companyName: "",
   });
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (field, value) => {
     setForm((p) => ({ ...p, [field]: value }));
     setErrors((p) => ({ ...p, [field]: "" }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
     if (!form.name) newErrors.name = "Name is required";
     if (!form.email) newErrors.email = "Email is required";
     if (!form.password) newErrors.password = "Password is required";
+    if (form.password.length < 6) newErrors.password = "Password must be at least 6 characters";
     if (form.password !== form.confirmPassword)
       newErrors.confirmPassword = "Passwords don't match";
     if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
     }
-    signup({ ...form, role });
-    toast.success("Account created successfully!");
-    navigate(role === "vendor" ? "/dashboard/vendor" : "/dashboard/agency");
+
+    setIsLoading(true);
+    const result = await signup({ ...form, role });
+    setIsLoading(false);
+
+    if (result.success) {
+      toast.success("Account created successfully!");
+      navigate(role === "vendor" ? "/dashboard/vendor" : "/dashboard/agency");
+    } else {
+      toast.error(result.error || "Signup failed");
+    }
   };
 
   return (
@@ -96,8 +106,8 @@ export default function SignupForm() {
               onChange={(e) => handleChange("confirmPassword", e.target.value)}
               error={errors.confirmPassword}
             />
-            <Button type="submit" className="w-full">
-              Create Account
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating account..." : "Create Account"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}

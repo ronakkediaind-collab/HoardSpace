@@ -9,13 +9,13 @@ import { MapPin } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, profile } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("agency");
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
     if (!email) newErrors.email = "Email is required";
@@ -24,9 +24,19 @@ export default function Login() {
       setErrors(newErrors);
       return;
     }
-    login(email, password, role);
-    toast.success("Welcome back!");
-    navigate(role === "vendor" ? "/dashboard/vendor" : "/dashboard/agency");
+
+    setIsLoading(true);
+    const result = await login(email, password);
+    setIsLoading(false);
+
+    if (result.success) {
+      toast.success("Welcome back!");
+      setTimeout(() => {
+        navigate(profile?.role === "vendor" ? "/dashboard/vendor" : "/dashboard/agency");
+      }, 100);
+    } else {
+      toast.error(result.error || "Login failed");
+    }
   };
 
   return (
@@ -63,35 +73,8 @@ export default function Login() {
               error={errors.password}
               placeholder="••••••••"
             />
-            <div>
-              <label className="block text-sm font-medium mb-2">Login as</label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole("agency")}
-                  className={`flex-1 py-2 rounded-lg border transition-all ${
-                    role === "agency"
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-input"
-                  }`}
-                >
-                  Ad Agency
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("vendor")}
-                  className={`flex-1 py-2 rounded-lg border transition-all ${
-                    role === "vendor"
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-input"
-                  }`}
-                >
-                  Vendor
-                </button>
-              </div>
-            </div>
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}

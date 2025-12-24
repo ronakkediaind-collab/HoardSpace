@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -6,37 +7,79 @@ import {
   Eye,
   IndianRupee,
   Phone,
-  Mail,
   Star,
   Heart,
+  Loader2,
 } from "lucide-react";
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import Button from "../components/common/Button";
 import Badge from "../components/common/Badge";
-import {
-  getHoardingById,
-  getVendorById,
-  hoardingTypes,
-  formatPrice,
-} from "../data/dummyData";
+import BookingModal from "../components/booking/BookingModal";
+import { useHoarding } from "../hooks/useHoardings";
+import { useFavorites } from "../hooks/useBookings";
+import { useAuth } from "../context/AuthContext";
+import { hoardingTypes } from "../data/dummyData";
 
 export default function HoardingDetails() {
   const { id } = useParams();
-  const hoarding = getHoardingById(Number(id));
-  const vendor = hoarding ? getVendorById(hoarding.vendorId) : null;
-  const typeInfo = hoardingTypes.find((t) => t.id === hoarding?.type);
+  const { user } = useAuth();
+  const { hoarding, isLoading } = useHoarding(id);
+  const { favorites, addFavorite, removeFavorite, isFavorite } = useFavorites(user?.id);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  if (!hoarding)
+  const typeInfo = hoardingTypes.find((t) => t.id === hoarding?.type);
+  const imageUrl = hoarding?.images?.[0] || "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=500&fit=crop";
+  const isHoardingFavorite = isFavorite(hoarding?.id);
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Hoarding not found
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
       </div>
     );
+  }
 
-  const handleBook = () =>
-    toast.success("Booking request sent! Vendor will contact you shortly.");
-  const handleSave = () => toast.success("Hoarding saved to your list!");
+  if (!hoarding) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Hoarding not found</h2>
+            <Link to="/search" className="text-primary hover:underline">
+              Browse all hoardings
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSave = async () => {
+    if (!user) {
+      toast.error("Please login to save hoardings");
+      return;
+    }
+
+    setIsSaving(true);
+    const result = isHoardingFavorite
+      ? await removeFavorite(hoarding.id)
+      : await addFavorite(hoarding.id);
+    setIsSaving(false);
+
+    if (result.success) {
+      toast.success(
+        isHoardingFavorite ? "Removed from favorites" : "Added to favorites"
+      );
+    } else {
+      toast.error(result.error || "Failed to update favorites");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -45,11 +88,31 @@ export default function HoardingDetails() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
-              <img
-                src={hoarding.image}
-                alt={hoarding.title}
-                className="w-full aspect-video object-cover rounded-2xl"
-              />
+              <div className="relative">
+                <img
+                  src={imageUrl}
+                  alt={hoarding.title}
+                  className="w-full aspect-video object-cover rounded-2xl"
+                  onError={(e) => {
+                    e.target.src = "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=500&fit=crop";
+                  }}
+                />
+                <div className="absolute top-4 right-4">
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className={`p-3 rounded-full backdrop-blur-sm transition-all ${
+                      isHoardingFavorite
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background/80 hover:bg-background"
+                    }`}
+                  >
+                    <Heart
+                      className={`w-5 h-5 ${isHoardingFavorite ? "fill-current" : ""}`}
+                    />
+                  </button>
+                </div>
+              </div>
               <div>
                 <div className="flex flex-wrap gap-2 mb-3">
                   <Badge
@@ -83,16 +146,35 @@ export default function HoardingDetails() {
                   <p className="text-xs text-muted-foreground">Daily Traffic</p>
                   <p className="font-semibold flex items-center gap-1">
                     <Eye className="w-4 h-4" />
-                    {hoarding.traffic}
+                    {hoarding.traffic || "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Features</p>
-                  <p className="font-semibold">
-                    {hoarding.features?.join(", ")}
+                  <p className="text-xs text-muted-foreground">Views</p>
+                  <p className="font-semibold flex items-center gap-1">
+                    <Eye className="w-4 h-4" />
+                    {hoarding.views_count || 0}
                   </p>
                 </div>
               </div>
+              {hoarding.features?.length > 0 && (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <h3 className="font-semibold mb-3">Features</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {hoarding.features.map((feature, idx) => (
+                      <Badge key={idx} variant="secondary">
+                        {feature}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {hoarding.description && (
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{hoarding.description}</p>
+                </div>
+              )}
             </div>
             <div className="space-y-4">
               <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
@@ -100,47 +182,56 @@ export default function HoardingDetails() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
                     <span className="text-muted-foreground">Daily Rate</span>
-                    <span className="text-xl font-bold text-primary">
-                      {formatPrice(hoarding.dailyRate)}
+                    <span className="text-xl font-bold text-primary flex items-center">
+                      <IndianRupee className="w-4 h-4" />
+                      {hoarding.daily_rate.toLocaleString("en-IN")}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
                     <span className="text-muted-foreground">Monthly Rate</span>
-                    <span className="text-xl font-bold">
-                      {formatPrice(hoarding.monthlyRate)}
+                    <span className="text-xl font-bold flex items-center">
+                      <IndianRupee className="w-4 h-4" />
+                      {hoarding.monthly_rate.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
-                <Button onClick={handleBook} className="w-full">
-                  Book Now
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  variant="outline"
-                  className="w-full gap-2"
-                >
-                  <Heart className="w-4 h-4" />
-                  Save
-                </Button>
+                {user && (
+                  <Button
+                    onClick={() => setShowBookingModal(true)}
+                    className="w-full"
+                  >
+                    Book Now
+                  </Button>
+                )}
+                {!user && (
+                  <Link to="/login">
+                    <Button className="w-full">Login to Book</Button>
+                  </Link>
+                )}
               </div>
-              {vendor && (
+              {hoarding.vendor && (
                 <div className="bg-card border border-border rounded-2xl p-6 space-y-3">
                   <h2 className="font-display font-semibold text-lg">
                     Vendor Info
                   </h2>
-                  <p className="font-medium">{vendor.name}</p>
-                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Star className="w-4 h-4 text-warning" />
-                    {vendor.rating} rating
+                  <p className="font-medium">
+                    {hoarding.vendor.company_name || hoarding.vendor.full_name}
                   </p>
-                  <p className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-primary" />
-                    {vendor.email}
-                  </p>
-                  <p className="flex items-center gap-2 text-sm">
-                    <Phone className="w-4 h-4 text-primary" />
-                    {vendor.phone}
-                  </p>
+                  {hoarding.vendor.rating > 0 && (
+                    <p className="flex items-center gap-2 text-sm">
+                      <Star className="w-4 h-4 text-warning fill-warning" />
+                      <span className="font-medium">{hoarding.vendor.rating.toFixed(1)}</span>
+                      <span className="text-muted-foreground">
+                        ({hoarding.vendor.total_reviews || 0} reviews)
+                      </span>
+                    </p>
+                  )}
+                  {hoarding.vendor.phone && (
+                    <p className="flex items-center gap-2 text-sm">
+                      <Phone className="w-4 h-4 text-primary" />
+                      {hoarding.vendor.phone}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -148,6 +239,13 @@ export default function HoardingDetails() {
         </div>
       </main>
       <Footer />
+      {hoarding && (
+        <BookingModal
+          isOpen={showBookingModal}
+          onClose={() => setShowBookingModal(false)}
+          hoarding={hoarding}
+        />
+      )}
     </div>
   );
 }
