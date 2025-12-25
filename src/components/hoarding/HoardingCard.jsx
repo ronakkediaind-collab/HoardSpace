@@ -7,19 +7,15 @@ import { formatPrice, hoardingTypes } from "../../data/dummyData";
 
 export default function HoardingCard({ hoarding }) {
   const typeInfo = hoardingTypes.find((t) => t.id === hoarding.type);
-  const imageUrl = hoarding.images?.[0] || hoarding.image || "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600&h=400&fit=crop";
 
   return (
     <Card hover className="group">
       {/* Image */}
-      <div className="relative aspect-[16/10] overflow-hidden bg-secondary">
+      <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-secondary to-secondary/50">
         <img
-          src={imageUrl}
+          src={hoarding.image}
           alt={hoarding.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            e.target.src = "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600&h=400&fit=crop";
-          }}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
 
         {/* Status Badge */}
@@ -70,14 +66,14 @@ export default function HoardingCard({ hoarding }) {
               <p className="text-xs text-muted-foreground">Daily Rate</p>
               <p className="font-semibold text-primary flex items-center">
                 <IndianRupee className="w-3.5 h-3.5" />
-                {(hoarding.daily_rate || hoarding.dailyRate || 0).toLocaleString("en-IN")}
+                {hoarding.dailyRate.toLocaleString("en-IN")}
               </p>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Monthly Rate</p>
               <p className="font-semibold flex items-center">
                 <IndianRupee className="w-3.5 h-3.5" />
-                {(hoarding.monthly_rate || hoarding.monthlyRate || 0).toLocaleString("en-IN")}
+                {hoarding.monthlyRate.toLocaleString("en-IN")}
               </p>
             </div>
           </div>
